@@ -13,3 +13,7 @@ run `pip install .` in the project folder
 - `plot path-to-input-file` to plot the svg with the standard plot_config
 
 - `plot_config` to edit the standart plot_config with gedit
+
+## Development
+
+run `python plotting_tools/pre_process.py path-to-input-file` to test pre_process and run `python plotting_tools/plot.py path-to-input-file` to test plot

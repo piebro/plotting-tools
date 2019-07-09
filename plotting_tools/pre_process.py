@@ -117,7 +117,7 @@ def center_rescale(et, configs):
     print("centered")
     print("scaled to {}mm x {}mm".format(targetSize[0], targetSize[1]))
 
-  return [targetSize[0]*PIXEL_TO_MM_MULT, targetSize[1]*PIXEL_TO_MM_MULT]
+  return [targetSize[0]*PIXEL_TO_MM_MULT, targetSize[1]*PIXEL_TO_MM_MULT, offset[0], offset[1]]
 
 def unify_line_length(et, configs):
   root = et.getroot()
@@ -215,6 +215,14 @@ def getTimePrediction(output, configs):
 
   print(proc.stderr.split('\n')[0])
 
+def surround_with_box(et, svg_size, configs):
+  root = et.getroot()
+  print(svg_size)
+  box = ET.Element("rect", x=str(svg_size[2]), y=str(svg_size[3]), width=str(svg_size[0]-2*svg_size[2]), height=str(svg_size[1]-2*svg_size[3]), style="stroke:rgb(0,0,0);stroke-width:" + str(configs.STROKE_WIDTH/PIXEL_TO_MM_MULT) + ";fill:none") 
+  root.insert(0,box)
+  if configs.LOG:
+    print("added surround box")
+
 def main():
   args = getArgs()
   output = os.path.dirname(args.input) + "/plotter-ready_" + os.path.basename(args.input)
@@ -224,6 +232,9 @@ def main():
   svg_size = center_rescale(et, configs)
 
   unify_line_length(et, configs)
+
+  if(configs.SURROUND_WITH_BOX):
+    surround_with_box(et, svg_size, configs)
   
   if(configs.ADD_TEXT):
     add_text(et, svg_size, args.input, configs)
