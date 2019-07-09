@@ -33,8 +33,8 @@ Similarly, values set within Inkscape are ignored when using the CLI or
 # DEFAULT VALUES
 
 speed_pendown = 25      # Maximum plotting speed, when pen is down (1-100)
-speed_penup = 75        # Maximum transit speed, when pen is up (1-100)
-accel = 75              # Acceleration rate factor (1-100)
+speed_penup = 45        # Maximum transit speed, when pen is up (1-100)
+accel = 40              # Acceleration rate factor (1-100)
 
 pen_pos_up = 60         # Height of pen when raised (0-100)
 pen_pos_down = 30       # Height of pen when lowered (0-100)
@@ -45,7 +45,7 @@ pen_rate_lower = 50     # Rate of lowering pen (1-100)
 pen_delay_up = 0        # Optional delay after pen is raised (ms)
 pen_delay_down = 0      # Optional delay after pen is lowered (ms)
 
-const_speed = False     # Use constant velocity mode when pen is down.
+const_speed = True     # Use constant velocity mode when pen is down.
 report_time = False     # Report time elapsed.
 default_layer = 1       # Layer(s) selected for layers mode (1-1000).
 
