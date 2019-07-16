@@ -5,7 +5,7 @@ import os.path
 import xml.etree.ElementTree as ET
 import re
 
-import plotting_tools.pre_process_config as configs
+import yaml
 
 PIXEL_TO_MM_MULT = 3.779527559
 PAPER_SIZES_LANDSCAPE = {
@@ -18,11 +18,6 @@ PAPER_SIZES_LANDSCAPE = {
 }
 
 STYLE = 'stroke-width:{};fill:none;stroke-linejoin:round;stroke-linecap:round;stroke:#000'
-
-def getArgs():
-  parser = argparse.ArgumentParser()
-  parser.add_argument("input", help="path to the input file")
-  return parser.parse_args()
 
 def get_current_transform_matrix(root):
   transformNode = list(root)[0]
@@ -223,28 +218,110 @@ def surround_with_box(et, svg_size, configs):
   if configs.LOG:
     print("added surround box")
 
-def main():
-  args = getArgs()
-  output = os.path.dirname(args.input) + "/plotter-ready_" + os.path.basename(args.input)
 
-  et = reorder_and_clip_path_at_sides(args.input, output, configs)
 
-  svg_size = center_rescale(et, configs)
 
-  unify_line_length(et, configs)
+def getArgs():
+  def str2bool(v):
+    if isinstance(v, bool):
+      return v
+    if v.lower() in ('yes', 'true', 't', 'y', '1'):
+      return True
+    elif v.lower() in ('no', 'false', 'f', 'n', '0'):
+      return False
+    else:
+      raise argparse.ArgumentTypeError('Boolean value expected.')
 
-  if(configs.SURROUND_WITH_BOX):
-    surround_with_box(et, svg_size, configs)
+  parser = argparse.ArgumentParser(prog="pre_process")
+
+  parser.add_argument("input", help="path to the input file")
+  parser.add_argument("output", help="path to the output file")
+
+  parser.add_argument("--center_and_rescale", type=str2bool)
+  parser.add_argument("--paper_format", type=float, nargs=2)
+  parser.add_argument("--svg_border", type=float)
+  parser.add_argument("--svg_scale", type=float)
+
+  parser.add_argument("--unfiy_stroke_color", type=str2bool)
+  parser.add_argument("--stroke_color", type=str)
+
+  parser.add_argument("--clip_path", type=str2bool)
+
+  parser.add_argument("--reorder_paths", type=str2bool)
   
-  if(configs.ADD_TEXT):
-    add_text(et, svg_size, args.input, configs)
+  parser.add_argument("--unfiy_stroke_width", type=str2bool)
+  parser.add_argument("--stroke_width", type=float)
 
-  add_background(et, configs)
+  parser.add_argument("--add_background", type=str2bool)
+  parser.add_argument("--background_color", type=str)
+
+  parser.add_argument("--add_surround_box", type=str2bool)
+  
+  parser.add_argument("--divide_into_multiple_svgs", type=str2bool)
+  parser.add_argument("--num_of_plots", type=int, nargs=2)
+
+  parser.add_argument("--log_predicted_plotting_time", type=str2bool)
+  parser.add_argument("--save_svg_as_strout", type=str2bool)
+  
+
+  return vars(parser.parse_args())
+
+
+def getConfig(args):
+  dir_path = os.path.dirname(os.path.realpath(__file__))
+  with open(dir_path + "/pre_process_config.yaml", 'r') as stream:
+    try:
+      config = yaml.safe_load(stream)
+      for key in args:
+        if(key=="input" or key=="output"): continue
+        if(args[key] != None):
+          config[key] = args[key]
+
+      return config
+    except yaml.YAMLError as exc:
+      print(exc)
+
+
+def unfiy_color(input, output, configs):
+  et = ET.parse(input)
+  root = et.getroot()
+
+  for child in list(root):
+    print(child)
+
 
   et.write(output)
-  print("saved to: ", output)
 
-  getTimePrediction(output, configs)
+
+def main():
+  
+  args = getArgs()
+  configs = getConfig(args)
+
+
+  print(args)
+
+  unfiy_color(args["input"], args["output"], configs)  
+
+
+  # et = reorder_and_clip_path_at_sides(args.input, args.output, configs)
+
+  # svg_size = center_rescale(et, configs)
+
+  # unify_line_length(et, configs)
+
+  # if(configs.SURROUND_WITH_BOX):
+  #   surround_with_box(et, svg_size, configs)
+  
+  # if(configs.ADD_TEXT):
+  #   add_text(et, svg_size, args.input, configs)
+
+  # add_background(et, configs)
+
+  # et.write(output)
+  # print("saved to: ", output)
+
+  # getTimePrediction(output, configs)
 
 
 

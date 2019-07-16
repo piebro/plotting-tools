@@ -1,0 +1,38 @@
+center_and_rescale: false
+# card: [149,111], a3: [420,297], a4: [297,210], a5: [210,148], a6: [148,105]
+paper_format: [149,111]
+svg_border: 0
+svg_scale: 0
+
+clip_path: true
+
+reorder_paths: true # for a more efficiant plotting
+
+unfiy_stroke_color: true
+stroke_color: "#000000"
+
+unfiy_stroke_width: true
+stroke_width: 2
+
+add_background: true
+background_color: "#ffffff"
+
+add_surround_box: True
+
+
+
+divide_into_multiple_svgs: true
+num_of_plots: [3,3]
+
+log_predicted_plotting_time: true
+save_svg_as_strout: true
+
+# processing order
+# 1. unfiy color
+# 2. clip and reorder path
+# 3. divide into multiple svgs
+# 4. center and rescale
+# 5. unfiy stroke width
+# 6. surround with bos
+# 7. add background
+# 8. save
