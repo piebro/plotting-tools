@@ -2,7 +2,7 @@
 
 ## Installation
 
-run `pip install .` in the project folder
+run `pip install .` in the project folder. Reinstalling it will also overwrite you config files.
 
 ## Commands
 

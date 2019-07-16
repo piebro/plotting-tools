@@ -37,7 +37,7 @@ speed_penup = 45        # Maximum transit speed, when pen is up (1-100)
 accel = 40              # Acceleration rate factor (1-100)
 
 pen_pos_up = 60         # Height of pen when raised (0-100)
-pen_pos_down = 30       # Height of pen when lowered (0-100)
+pen_pos_down = 45       # Height of pen when lowered (0-100)
 
 pen_rate_raise = 75     # Rate of raising pen (1-100)
 pen_rate_lower = 50     # Rate of lowering pen (1-100)
