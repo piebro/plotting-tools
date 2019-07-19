@@ -7,6 +7,8 @@ import re
 
 import plotting_tools.pre_process_config as configs
 
+import json
+
 PIXEL_TO_MM_MULT = 3.779527559
 PAPER_SIZES_LANDSCAPE = {
     "a3":[420,297],
@@ -29,12 +31,17 @@ def get_current_transform_matrix(root):
   currentTransformMatrix = transformNode.attrib['transform'][7:-1].split(',')
   return list(map(float, currentTransformMatrix))
 
-def reorder_and_clip_path_at_sides(input, output, configs):
-  subprocess.run(["axicli", input,
+def reorder_and_clip_path_at_sides(input, output, configs, reorder):
+  cmd = ["axicli", input,
     "--output=" + output,
     "--preview",
-    "--reorder=4",
-    "--rendering=1"])
+    "--rendering=1",
+    "--config=" + os.path.dirname(os.path.realpath(__file__)) + "/axidraw_config.py"
+  ]
+  if(reorder):
+    cmd.append("--reorder=4")
+  
+  subprocess.run(cmd)
 
   et = ET.parse(output)
   root = et.getroot()
@@ -47,7 +54,7 @@ def reorder_and_clip_path_at_sides(input, output, configs):
       child.attrib.pop('{http://www.inkscape.org/namespaces/inkscape}label')
       for child2 in list(child):
         child.remove(child2)
-      child.append(drawingPath)
+      child.append(root.makeelement("ns0:path", drawingPath.attrib))
 
 
   if configs.LOG:
@@ -55,23 +62,7 @@ def reorder_and_clip_path_at_sides(input, output, configs):
 
   return et
 
-def center_rescale(et, configs):
-  def getSvgSize(root):
-    if "viewBox" in root.attrib:
-      viewBox = re.split(' |,',root.attrib["viewBox"])
-      width = float(re.findall(r'(\d+(?:\.\d+)?)',viewBox[2])[0])
-      height = float(re.findall(r'(\d+(?:\.\d+)?)',viewBox[3])[0])
-    elif "viewbox" in root.attrib:
-      viewBox = re.split(' |,',root.attrib["viewbox"])
-      width = float(re.findall(r'(\d+(?:\.\d+)?)',viewBox[2])[0])
-      height = float(re.findall(r'(\d+(?:\.\d+)?)',viewBox[3])[0])
-    elif "width" in root.attrib and "height" in root.attrib:
-      width =  float(re.findall(r'(\d+(?:\.\d+)?)',root.attrib["width"])[0])
-      height =  float(re.findall(r'(\d+(?:\.\d+)?)',root.attrib["height"])[0])
-    else:
-      raise ValueError("invalid svg. No viewBox or width and height in svg file")
-    return [width, height]
-
+def center_rescale(et, svg_size, configs):
   def calcScaleAndOffset(svg_size, targetSize, configs):
     widthMult = svg_size[1]/svg_size[0]
 
@@ -93,7 +84,7 @@ def center_rescale(et, configs):
     return [scale,offset]
 
   root = et.getroot()
-  svg_size = getSvgSize(root)
+  
   targetSize = PAPER_SIZES_LANDSCAPE[configs.PAPER_FORMAT]
   if configs.SVG_AS_PORTRAIT:
     targetSize = [targetSize[1],targetSize[0]]
@@ -211,25 +202,84 @@ def add_background(et, configs):
 def getTimePrediction(output, configs):
   proc = subprocess.run(["axicli", output,
     "--preview",
-    "--report_time"], encoding='utf-8', stderr=subprocess.PIPE)
+    "--report_time",
+    "--config=" + os.path.dirname(os.path.realpath(__file__)) + "/axidraw_config.py"
+    ], encoding='utf-8', stderr=subprocess.PIPE)
 
   print(proc.stderr.split('\n')[0])
 
 def surround_with_box(et, svg_size, configs):
   root = et.getroot()
-  print(svg_size)
   box = ET.Element("rect", x=str(svg_size[2]), y=str(svg_size[3]), width=str(svg_size[0]-2*svg_size[2]), height=str(svg_size[1]-2*svg_size[3]), style="stroke:rgb(0,0,0);stroke-width:" + str(configs.STROKE_WIDTH/PIXEL_TO_MM_MULT) + ";fill:none") 
   root.insert(0,box)
   if configs.LOG:
     print("added surround box")
 
+def getSvgSize(root):
+    if "viewBox" in root.attrib:
+      viewBox = re.split(' |,',root.attrib["viewBox"])
+      width = float(re.findall(r'(\d+(?:\.\d+)?)',viewBox[2])[0])
+      height = float(re.findall(r'(\d+(?:\.\d+)?)',viewBox[3])[0])
+    elif "viewbox" in root.attrib:
+      viewBox = re.split(' |,',root.attrib["viewbox"])
+      width = float(re.findall(r'(\d+(?:\.\d+)?)',viewBox[2])[0])
+      height = float(re.findall(r'(\d+(?:\.\d+)?)',viewBox[3])[0])
+    elif "width" in root.attrib and "height" in root.attrib:
+      width =  float(re.findall(r'(\d+(?:\.\d+)?)',root.attrib["width"])[0])
+      height =  float(re.findall(r'(\d+(?:\.\d+)?)',root.attrib["height"])[0])
+    else:
+      raise ValueError("invalid svg. No viewBox or width and height in svg file")
+    return [width, height]
+
+def divideIntoSubSvgs(input, output):
+  print("clipping sub plot")
+  et = reorder_and_clip_path_at_sides(input, output, configs, False)
+  print("finisched clipping sub plot")
+  root = et.getroot()
+
+  svg_size = getSvgSize(root)
+  currentTransformMatrix = get_current_transform_matrix(root)
+
+  new_svg_size = [
+    svg_size[0]/configs.SUB_SVG_COUNT[0],
+    svg_size[1]/configs.SUB_SVG_COUNT[1]
+  ]
+
+  offset = [
+    new_svg_size[0]*(configs.INDEX_OF_SUB_SVG[0]-1),
+    new_svg_size[1]*(configs.INDEX_OF_SUB_SVG[1]-1)
+  ]
+
+  currentTransformMatrix[4] -= offset[0]
+  currentTransformMatrix[5] -= offset[1]
+  list(root)[0].attrib['transform'] = 'matrix({},{},{},{},{},{})'.format(*currentTransformMatrix)
+
+  root.attrib["width"] = "{}".format(new_svg_size[0])
+  root.attrib["height"] = "{}".format(new_svg_size[1])
+  root.attrib["viewBox"] = "{} {} {} {}".format(0, 0, new_svg_size[0], new_svg_size[1])
+
+  et.write(output)
+
+
+
 def main():
   args = getArgs()
-  output = os.path.dirname(args.input) + "/plotter-ready_" + os.path.basename(args.input)
+  if(os.path.dirname(args.input) == ""):
+    output =  os.getcwd()
+  else:
+    output = os.path.dirname(args.input)
+  output += "/plotter-ready_" + os.path.basename(args.input)
+  input = args.input
 
-  et = reorder_and_clip_path_at_sides(args.input, output, configs)
+  if(configs.SUB_SVG_COUNT[0] > 1 or configs.SUB_SVG_COUNT[1] > 1):
+    divideIntoSubSvgs(args.input, output)
+    input = output
+  
+  et = reorder_and_clip_path_at_sides(input, output, configs, True)
 
-  svg_size = center_rescale(et, configs)
+  svg_size = getSvgSize(et.getroot())
+
+  svg_size = center_rescale(et, svg_size, configs)
 
   unify_line_length(et, configs)
 
