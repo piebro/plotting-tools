@@ -11,8 +11,8 @@ def plot():
 
 def edit_axidraw_config():
   dir_path = path.dirname(path.realpath(__file__))
-  subprocess.run(["gedit", dir_path+"/axidraw_config.py"])
+  subprocess.Popen(["gedit", dir_path+"/axidraw_config.py"])
 
 def edit_pre_process_config():
   dir_path = path.dirname(path.realpath(__file__))
-  subprocess.run(["gedit", dir_path+"/pre_process_config.py"])
+  subprocess.Popen(["gedit", dir_path+"/pre_process_config.py"])

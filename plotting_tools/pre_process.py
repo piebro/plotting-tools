@@ -31,14 +31,14 @@ def get_current_transform_matrix(root):
   currentTransformMatrix = transformNode.attrib['transform'][7:-1].split(',')
   return list(map(float, currentTransformMatrix))
 
-def reorder_and_clip_path_at_sides(input, output, configs, reorder):
+def reorder_and_clip_path_at_sides(input, output, configs):
   cmd = ["axicli", input,
     "--output=" + output,
     "--preview",
     "--rendering=1",
     "--config=" + os.path.dirname(os.path.realpath(__file__)) + "/axidraw_config.py"
   ]
-  if(reorder):
+  if(configs.OPTIMISE_PLOTTING_PATH):
     cmd.append("--reorder=4")
   
   subprocess.run(cmd)
@@ -233,7 +233,7 @@ def getSvgSize(root):
 
 def divideIntoSubSvgs(input, output):
   print("clipping sub plot")
-  et = reorder_and_clip_path_at_sides(input, output, configs, False)
+  et = reorder_and_clip_path_at_sides(input, output, configs)
   print("finisched clipping sub plot")
   root = et.getroot()
 
@@ -275,7 +275,7 @@ def main():
     divideIntoSubSvgs(args.input, output)
     input = output
   
-  et = reorder_and_clip_path_at_sides(input, output, configs, True)
+  et = reorder_and_clip_path_at_sides(input, output, configs)
 
   svg_size = getSvgSize(et.getroot())
 
